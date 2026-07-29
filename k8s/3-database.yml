@@ -1,0 +1,113 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-vinos-pvc
+  namespace: cavalocal
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-vinos
+  namespace: cavalocal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-vinos
+  template:
+    metadata:
+      labels:
+        app: db-vinos
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_USER, value: "postgres" }
+            - { name: POSTGRES_PASSWORD, value: "12345" }
+            - { name: POSTGRES_DB, value: "cavalocal" }
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: db-vinos-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-vinos
+  namespace: cavalocal
+spec:
+  selector:
+    app: db-vinos
+  ports:
+    - port: 5432
+      targetPort: 5432
+  type: ClusterIP
+---
+#-----------------------DB AUDITORIA ------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: db-audit-pvc
+  namespace: cavalocal
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-audit
+  namespace: cavalocal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db-audit
+  template:
+    metadata:
+      labels:
+        app: db-audit
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          env:
+            - { name: POSTGRES_USER, value: "postgres" }
+            - { name: POSTGRES_PASSWORD, value: "12345" }
+            - { name: POSTGRES_DB, value: "auditoria" }
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: db-audit-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-audit
+  namespace: cavalocal
+spec:
+  selector:
+    app: db-audit
+  ports:
+    - port: 5433
+      targetPort: 5433
+  type: ClusterIP
+---

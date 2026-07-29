@@ -23,7 +23,6 @@ coverage/
 
 # ---------- Trabajo académico y mockups (excluidos a pedido) ----------
 *.docx
-*.pdf
 Fotos/
 
 # ---------- Scratch de orquestación (briefs/reports/reviews SDD) ----------

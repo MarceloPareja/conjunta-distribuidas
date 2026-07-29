@@ -79,8 +79,11 @@ ul { list-style: none; }
 .nav-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
 .icon-btn { width: 42px; height: 42px; border-radius: 50%; background: var(--surface); display: flex; align-items: center; justify-content: center; transition: var(--transition); }
 .icon-btn:hover { background: var(--gold-soft); }
+.btn-audit { background: #F4EBE1; color: var(--wine); padding: 9px 18px; border-radius: 50px; font-weight: 700; font-size: 14px; border: 1px solid #E2D4C5; transition: var(--transition); display: inline-flex; align-items: center; gap: 6px; }
+.btn-audit:hover { background: var(--gold); color: var(--wine-dark); border-color: var(--gold); }
 .btn-login { background: var(--wine); color: #fff; padding: 11px 22px; border-radius: 50px; font-weight: 700; font-size: 14px; transition: var(--transition); }
 .btn-login:hover { background: var(--wine-soft); }
+#account { display: flex; align-items: center; gap: 10px; }
 .user-pill { display: flex; align-items: center; gap: 10px; cursor: pointer; }
 .avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--wine); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; }
 .user-pill .uname { font-weight: 700; font-size: 14px; }

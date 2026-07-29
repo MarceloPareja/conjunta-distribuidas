@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto';
+import { Subject, Observable } from 'rxjs';
 
 export interface CreateAuditLogPayload {
   entity: string;
@@ -14,10 +15,16 @@ export interface CreateAuditLogPayload {
 
 @Injectable()
 export class AuditService {
+  private auditLogCreated = new Subject<any>();
+
+  get auditLogCreated$(): Observable<any> {
+    return this.auditLogCreated.asObservable();
+  }
+
   constructor(private readonly prisma: PrismaService) {}
 
   async createAuditLog(payload: CreateAuditLogPayload) {
-    return this.prisma.auditLog.create({
+    const log = await this.prisma.auditLog.create({
       data: {
         entity: payload.entity,
         action: payload.action,
@@ -27,6 +34,8 @@ export class AuditService {
         data: payload.data ? payload.data : Prisma.JsonNull,
       },
     });
+    this.auditLogCreated.next(log);
+    return log;
   }
 
   async findAll(query: QueryAuditLogDto) {

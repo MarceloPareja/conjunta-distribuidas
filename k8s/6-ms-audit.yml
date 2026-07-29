@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-audit
+  namespace: cavalocal
+  labels:
+    app: ms-audit
+spec:
+  # 2 réplicas: RabbitMQ garantiza distribución competitiva,
+  # cada mensaje es procesado por un solo pod (sin duplicados).
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ms-audit
+  template:
+    metadata:
+      labels:
+        app: ms-audit
+    spec:
+      containers:
+        - name: ms-audit
+          image: cavalocal-audit-service:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PORT
+              value: "3002"
+            - name: NODE_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: cavalocal-config
+                  key: NODE_ENV
+            # Misma BD que el backend (mismas credenciales del docker-compose)
+            # Solo cambia el host: en K8s es el Service "db-cavalocal:5432"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: vinos-secret
+                  key: DATABASE_URL
+            # RabbitMQ interno por DNS de K8s
+            - name: RABBITMQ_URL
+              value: "amqp://guest:guest@rabbitmq:5672"
+            - name: RABBITMQ_QUEUE
+              valueFrom:
+                configMapKeyRef:
+                  name: cavalocal-config
+                  key: RABBITMQ_QUEUE
+          ports:
+            - containerPort: 3002
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3002
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "250m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-audit
+  namespace: cavalocal
+spec:
+  selector:
+    app: ms-audit
+  ports:
+    - port: 3002
+      targetPort: 3002
+  type: ClusterIP

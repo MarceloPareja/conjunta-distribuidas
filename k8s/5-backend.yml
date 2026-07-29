@@ -19,10 +19,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: PORT
-              valueFrom:
-                configMapKeyRef:
-                  name: cavalocal-config
-                  key: PORT
+              value: "3001"
             - name: NODE_ENV
               valueFrom:
                 configMapKeyRef:
@@ -38,6 +35,9 @@ spec:
                 configMapKeyRef:
                   name: cavalocal-config
                   key: CORS_ORIGINS
+            # RabbitMQ — el host interno es el Service "rabbitmq"
+            - name: RABBITMQ_URL
+              value: "amqp://guest:guest@rabbitmq:5672"
             - name: RABBITMQ_HOST
               valueFrom:
                 configMapKeyRef:
@@ -58,11 +58,12 @@ spec:
                 secretKeyRef:
                   name: vinos-secret
                   key: RABBITMQ_PASSWORD
+            # BD — mismas credenciales que en docker-compose, host cambia a K8s DNS
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: vinos-secret
-                  key: BACKEND_DB_URL
+                  key: DATABASE_URL
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -91,6 +92,21 @@ spec:
               port: 3001
             initialDelaySeconds: 15
             periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "150m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
 ---
 apiVersion: v1
 kind: Service

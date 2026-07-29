@@ -1,24 +1,21 @@
-# Variables de entorno COMUNES a todos los microservicios.
-# Las variables que cambian por servicio (RABBITMQ_QUEUE/EXCHANGE/ROUTING_KEY,
-# datos de BD, puertos) se definen dentro de cada Deployment en 05-microservices.yaml.
+# Variables no sensibles comunes a todos los microservicios
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cavalocal-config
   namespace: cavalocal
 data:
-  # Conexión a RabbitMQ (el host es el nombre del Service "rabbitmq")
+  NODE_ENV: "production"
+  PORT_BACKEND: "3001"
+  PORT_AUDIT: "3002"
   RABBITMQ_HOST: "rabbitmq"
   RABBITMQ_PORT: "5672"
   RABBITMQ_USER: "guest"
-  RABBITMQ_PASSWORD: "guest"
-  PORT: "3001"
-  NODE_ENV: "development"
+  RABBITMQ_QUEUE: "audit_queue"
   JWT_EXPIRES_IN: "1d"
   CORS_ORIGINS: "*"
-
 ---
-# Valores sensibles. REEMPLAZA los placeholders con los valores reales de tu archivo .env
+# Valores sensibles — mismas credenciales que docker-compose/.env
 apiVersion: v1
 kind: Secret
 metadata:
@@ -27,13 +24,10 @@ metadata:
 type: Opaque
 stringData:
   RABBITMQ_PASSWORD: "guest"
-  BACKEND_DB_URL: "postgresql://postgres:pg-vinos@db-vinos:5432/cavalocal"
-  BACKEND_DB_USER: "postgres"
-  BACKEND_DB_PASSWORD: "pg-vinos"
-  AUDIT_DB_URL: "postgresql://postgres:pg-audit@db-auditoria:5433/auditoria"
-  AUDIT_DB_USER: "postgres"
-  AUDIT_DB_PASSWORD: "pg-audit"
-  JWT_SECRET: "cambia-esto-en-produccion"
+  # URL de BD: el host "db-cavalocal" es el Service de K8s (puerto interno 5432).
+  # En docker-compose era localhost:5433 (mapping host), en K8s es db-cavalocal:5432.
+  DATABASE_URL: "postgresql://postgres:postgrespassword@db-cavalocal:5432/cavalocal?schema=public"
+  JWT_SECRET: "secreto-super-seguro-cavalocal"
   GOOGLE_CLIENT_ID: "TU_GOOGLE_CLIENT_ID"
   MAIL_USER: "tu-correo@gmail.com"
   MAIL_APP_PASSWORD: "TU_APP_PASSWORD_16_CHARS"

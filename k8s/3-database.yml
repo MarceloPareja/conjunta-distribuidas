@@ -1,113 +1,77 @@
+# ─── PVC para la base de datos principal (cavalocal) ────────────────────────
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: db-vinos-pvc
+  name: db-cavalocal-pvc
   namespace: cavalocal
 spec:
   accessModes: ["ReadWriteOnce"]
   resources:
     requests:
-      storage: 1Gi
+      storage: 2Gi
 ---
+# ─── Deployment de PostgreSQL ────────────────────────────────────────────────
+# Nota: En docker-compose el puerto del HOST era 5433:5432 para evitar
+# conflictos con un Postgres local. En Kubernetes los pods se comunican
+# por DNS interno, por lo que el Service expone el puerto real del
+# contenedor: 5432. No hay mapping de host involucrado.
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: db-vinos
+  name: db-cavalocal
   namespace: cavalocal
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: db-vinos
+      app: db-cavalocal
   template:
     metadata:
       labels:
-        app: db-vinos
+        app: db-cavalocal
     spec:
       containers:
         - name: postgres
-          image: postgres:16-alpine
+          image: postgres:15-alpine
           env:
             - { name: POSTGRES_USER, value: "postgres" }
-            - { name: POSTGRES_PASSWORD, value: "12345" }
+            - { name: POSTGRES_PASSWORD, value: "postgrespassword" }
             - { name: POSTGRES_DB, value: "cavalocal" }
           ports:
             - containerPort: 5432
+          readinessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 5
+          livenessProbe:
+            exec:
+              command: ["pg_isready", "-U", "postgres"]
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
       volumes:
         - name: data
           persistentVolumeClaim:
-            claimName: db-vinos-pvc
+            claimName: db-cavalocal-pvc
 ---
+# ─── Service ClusterIP ───────────────────────────────────────────────────────
+# Los pods se conectan a "db-cavalocal:5432" por DNS interno de Kubernetes.
+# El backend y el audit-service usan la misma BD (cavalocal), igual que en
+# docker-compose donde ambos se conectaban a localhost:5433 (→ 5432 interno).
 apiVersion: v1
 kind: Service
 metadata:
-  name: db-vinos
+  name: db-cavalocal
   namespace: cavalocal
 spec:
   selector:
-    app: db-vinos
+    app: db-cavalocal
   ports:
     - port: 5432
       targetPort: 5432
   type: ClusterIP
----
-#-----------------------DB AUDITORIA ------------------
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: db-audit-pvc
-  namespace: cavalocal
-spec:
-  accessModes: ["ReadWriteOnce"]
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: db-audit
-  namespace: cavalocal
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: db-audit
-  template:
-    metadata:
-      labels:
-        app: db-audit
-    spec:
-      containers:
-        - name: postgres
-          image: postgres:16-alpine
-          env:
-            - { name: POSTGRES_USER, value: "postgres" }
-            - { name: POSTGRES_PASSWORD, value: "12345" }
-            - { name: POSTGRES_DB, value: "auditoria" }
-          ports:
-            - containerPort: 5432
-          volumeMounts:
-            - name: data
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: db-audit-pvc
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: db-audit
-  namespace: cavalocal
-spec:
-  selector:
-    app: db-audit
-  ports:
-    - port: 5433
-      targetPort: 5433
-  type: ClusterIP
----

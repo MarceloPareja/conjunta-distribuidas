@@ -15,10 +15,31 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: cavalocal-webapp-web:latest
+          image: cavalocal-frontend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "50m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
 ---
 apiVersion: v1
 kind: Service

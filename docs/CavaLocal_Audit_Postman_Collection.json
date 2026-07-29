@@ -1,0 +1,150 @@
+{
+	"info": {
+		"_postman_id": "cavalocal-audit-collection-v1",
+		"name": "CavaLocal - API & Auditoría RabbitMQ",
+		"description": "Colección de pruebas para verificar el flujo de auditoría entre la API principal y el Microservicio de Auditoría con RabbitMQ.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Backend API (Emisor de Auditoría)",
+			"item": [
+				{
+					"name": "Registrar Usuario (Genera evento USER -> REGISTER)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Cliente Auditoria\",\n  \"email\": \"auditoria.postman@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3001/auth/register",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3001",
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "Iniciar Sesión (Genera evento USER -> LOGIN)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"auditoria.postman@example.com\",\n  \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3001/auth/login",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3001",
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "Crear Reserva (Genera evento RESERVATION -> CREATE)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Authorization", "value": "Bearer {{JWT_TOKEN}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"wineId\": \"wine-1-id\",\n  \"establishmentId\": \"est-1-id\",\n  \"quantity\": 2,\n  \"orderType\": \"pickup\",\n  \"customer\": {\n    \"name\": \"Cliente Auditoria\",\n    \"email\": \"auditoria.postman@example.com\",\n    \"phone\": \"04141234567\"\n  }\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3001/reservations",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3001",
+							"path": ["reservations"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "2. Microservicio Auditoría (REST API / Consultas)",
+			"item": [
+				{
+					"name": "Obtener Todos los Logs (Paginado)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/audit-logs?page=1&pageSize=20",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3002",
+							"path": ["audit-logs"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "pageSize", "value": "20" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Filtrar por Entidad (User)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/audit-logs?entity=User",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3002",
+							"path": ["audit-logs"],
+							"query": [
+								{ "key": "entity", "value": "User" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Filtrar por Acción (REGISTER)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/audit-logs?action=REGISTER",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3002",
+							"path": ["audit-logs"],
+							"query": [
+								{ "key": "action", "value": "REGISTER" }
+							]
+						}
+					}
+				},
+				{
+					"name": "Filtrar por Usuario (Email)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:3002/audit-logs?user=auditoria.postman@example.com",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3002",
+							"path": ["audit-logs"],
+							"query": [
+								{ "key": "user", "value": "auditoria.postman@example.com" }
+							]
+						}
+					}
+				}
+			]
+		}
+	]
+}

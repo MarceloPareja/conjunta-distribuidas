@@ -1,12 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreateReviewDto } from './dto/create-review.dto';
+import { AuditPublisherService } from '../../common/audit/audit-publisher.service';
 
 const round1 = (n: number | null) => (n != null ? Math.round(n * 10) / 10 : null);
 
 @Injectable()
 export class ReviewsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditPublisher: AuditPublisherService,
+  ) {}
 
   async createOrUpdate(userId: string, dto: CreateReviewDto) {
     const existing = await this.prisma.review.findFirst({
@@ -23,6 +27,17 @@ export class ReviewsService {
       _avg: { rating: true },
       _count: { _all: true },
     });
+
+    this.auditPublisher.publish({
+      entity: 'Review',
+      action: existing ? 'UPDATE' : 'CREATE',
+      userId,
+      data: {
+        before: existing ? { rating: existing.rating, comment: existing.comment } : null,
+        after: { id: review.id, wineId: dto.wineId, rating: review.rating, comment: review.comment },
+      },
+    });
+
     return { review, avgRating: round1(agg._avg.rating), reviewCount: agg._count._all };
   }
 

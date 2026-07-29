@@ -13,6 +13,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleVerifierService } from './google-verifier.service';
+import { AuditPublisherService } from '../../common/audit/audit-publisher.service';
 
 export interface AuthResult {
   accessToken: string;
@@ -27,6 +28,7 @@ export class AuthService {
     private readonly googleVerifier: GoogleVerifierService,
     private readonly email: EmailService,
     private readonly config: ConfigService,
+    private readonly auditPublisher: AuditPublisherService,
   ) {}
 
   async register(dto: RegisterDto): Promise<AuthResult> {
@@ -37,6 +39,13 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const user = await this.prisma.user.create({
       data: { name: dto.name.trim(), email, phone: dto.phone, passwordHash },
+    });
+    this.auditPublisher.publish({
+      entity: 'User',
+      action: 'REGISTER',
+      userId: user.id,
+      userEmail: user.email,
+      data: { after: { id: user.id, name: user.name, email: user.email, role: user.role } },
     });
     return this.buildResult(user);
   }
@@ -49,6 +58,12 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Correo o contraseña incorrectos.');
 
+    this.auditPublisher.publish({
+      entity: 'User',
+      action: 'LOGIN',
+      userId: user.id,
+      userEmail: user.email,
+    });
     return this.buildResult(user);
   }
 
@@ -65,6 +80,12 @@ export class AuthService {
     } else if (!user.googleId) {
       await this.prisma.user.update({ where: { id: user.id }, data: { googleId: profile.sub } });
     }
+    this.auditPublisher.publish({
+      entity: 'User',
+      action: 'GOOGLE_LOGIN',
+      userId: user.id,
+      userEmail: user.email,
+    });
     return this.buildResult(user);
   }
 

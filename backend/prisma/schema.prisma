@@ -262,3 +262,21 @@ model Reservation {
 
   @@index([userId])
 }
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  entity    String
+  action    String
+  userId    String?
+  userEmail String?
+  timestamp DateTime @default(now())
+  data      Json?
+  createdAt DateTime @default(now())
+
+  @@index([entity])
+  @@index([action])
+  @@index([userId])
+  @@index([userEmail])
+  @@index([timestamp])
+}
+
